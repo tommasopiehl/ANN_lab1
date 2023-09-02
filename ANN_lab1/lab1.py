@@ -2,50 +2,30 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
-def init_w(n_classes, n_features):
+def init_w(n_classes, n_features, bias=True):
     """
-    This function initializes the weights of the perceptron, with one for each input and one for the bias for each class.
+    This function initializes the weights of the perceptron, with one for each input and
+    one for the bias for each class.
     :param n_classes: int
     :param n_features: int
     :return: np.array
     """
 
-    w = np.random.rand(n_classes, n_features + 1) - 0.5
+    w = np.random.rand(n_classes, n_features + (1 if bias else 0)) - 0.5
 
     return w
 
 
-def adjust_w(w_old, delta_w):
-    w_new = w_old + delta_w
-
-    return w_new
-
-
-def plot_bound(w, X):
-    wT = w.transpose()
-    x_range = np.linspace(X[0].min(), X[0].max(), 100)
-    y_range = (-wT[0] * x_range - wT[2]) / wT[1]
-
-    return x_range, y_range
-
 # Initialize variables
 n = 10
-lr = 1
+lr = 0.5
 n_classes = 1
 n_features = 2
-class_a = np.zeros([2, int(n / 2)])
-class_b = np.zeros([2, int(n / 2)])
-data = np.ones([3, n])
-y_classification = np.zeros(n)
 mA = [1.0, 1.0]
 mB = [-1.0, -1.0]
 sigma = 0.5
 
 # Generate data
-# classA[0][:] = np.random.rand(int(n / 2)) * sigma + mA[0]
-# classA[1][:] = np.random.rand(int(n / 2)) * sigma + mA[1]
-# classB[0][:] = np.random.rand(int(n / 2)) * sigma + mB[0]
-# classB[1][:] = np.random.rand(int(n / 2)) * sigma + mB[1]
 
 class_a = np.random.multivariate_normal(mA, [[sigma, 0], [0, sigma]], int(n / 2)).T
 class_b = np.random.multivariate_normal(mB, [[sigma, 0], [0, sigma]], int(n / 2)).T
@@ -63,55 +43,84 @@ input("Press Enter to continue...")
 
 
 # Initialize weights
-w = init_w(n_classes, n_features)
-dw = np.zeros([n, 3])
+w = init_w(n_classes, n_features, bias=True)
 
 # Display decision boundary
-def display_decision_boundary(w, class_a, class_b):
-    k = w[0,0]/w[0,1]
-    m = w[0,2]
+def display_decision_boundary(w, class_a, class_b, bias=True, highlight_point=None, highlight_color='r', title = None):
 
-    x_range = np.linspace(-2, 2, 100)
+    k = - (w[0,1]/w[0,0])
+    if bias:
+        m = w[0,2]
+    else:
+        m = 0
+
+    # Plot the decision boundary
+    x_range = np.linspace(-4, 4, 100)
     y_range = k*x_range + m
     plt.plot(x_range, y_range)
     plt.scatter(class_a[0], class_a[1], c='r')
     plt.scatter(class_b[0], class_b[1], c='b')
+
+    # make axis [-3, 3, -3, 3] and window square
+    plt.axis([-3, 3, -3, 3])
+    plt.gca().set_aspect('equal', adjustable='box')
+    plt.title(title)
+
+    # Add normal vector
+    plt.quiver(0, m, w[0,1], w[0,0], scale=1, scale_units='xy', angles='xy')
+
+
+    # Highlight point
+    if highlight_point is not None:
+        plt.scatter(highlight_point[0], highlight_point[1], c=highlight_color, marker='*')
     plt.show()
 
 display_decision_boundary(w, class_a, class_b)
 
+# Create data matrix
+data = np.hstack((class_a, class_b))
+
+# Create label vector
+labels = np.zeros(n)
+labels[int(n / 2):] = 1
+
+# Shuffle data and labels
+shuffle = np.random.permutation(n)
+data = data[:, shuffle]
+labels = labels[shuffle]
+
+
 # Classify data
-
-for i in range(5):
-    y_classification = []
-    y_value = []
-    for i, x_i in enumerate(class_a.T):
-        y_i = np.dot(w, x_i)
-        y_value.append(y_i)
-        y_i = int(y_i > 0)
-        y_classification.append(y_i)
-        if y_i == 0:
-            delta_w = lr * x_i
+for epoch in range(10):
+    all_good = True
+    for i in range(n):
+        y_pred_i = np.dot(w, data[:, i]) # Calculate the output of the perceptron
+        if y_pred_i <= 0:
+            y_pred_i = 0
         else:
-            delta_w = 0
-        w += delta_w
-        display_decision_boundary(w, class_a, class_b)
+            y_pred_i = 1
+        if y_pred_i != labels[i]:
+            if y_pred_i == 0:
+                highlight_color = 'b'
+            else:
+                highlight_color = 'r'
+            display_decision_boundary(w, class_a, class_b, bias=False, highlight_point=data[:, i], highlight_color=highlight_color, title="before update")
+            all_good = False
+            w = w - lr * (labels[i] - y_pred_i) * data[:, i] # Update the weights
+            if y_pred_i == 0:
+                highlight_color = 'r'
+            else:
+                highlight_color = 'b'
+            display_decision_boundary(w, class_a, class_b, bias=False, highlight_point=data[:, i], highlight_color=highlight_color, title="after update")
+    if all_good:
+        print("All good in epoch ", epoch)
+        break
 
-        x_i = class_b.T[i]
-        y_i = np.dot(w, x_i)
-        y_value.append(y_i)
-        y_i = int(y_i > 0)
-        y_classification.append(y_i)
-        if y_i == 1:
-            delta_w = lr * x_i
-        else:
-            delta_w = 0
-        w += delta_w
-        display_decision_boundary(w, class_a, class_b)
+# Plot the decision boundary
+display_decision_boundary(w, class_a, class_b, bias=False)
 
 
 
-print(y_classification)
 input("Press Enter to continue...")
 
 
