@@ -83,9 +83,9 @@ def display_decision_boundary(w,
     """
 
     # Calculate the slope and intercept of the decision boundary
-    k = - (w[0, 1] / w[0, 0])
+    k = - (w[0, 0] / w[0, 1])
     if bias:
-        m = - w[0, 2] / w[0, 0]
+        m = - w[0, 2] / w[0, 1]
     else:
         m = 0
 
@@ -93,8 +93,6 @@ def display_decision_boundary(w,
     x_range = np.linspace(-4, 4, 100)
     y_range = k * x_range + m
     plt.plot(x_range, y_range, c=line_color)
-
-
 
     # Plot the data points
     plt.scatter(class_a[0], class_a[1], c='b')
@@ -106,7 +104,7 @@ def display_decision_boundary(w,
     plt.title(title)
 
     # Add normal vector
-    plt.quiver(0, m, w[0, 1], w[0, 0], scale=1, scale_units='xy', angles='xy')
+    plt.quiver(0, m, w[0, 0], w[0, 1], scale=1, scale_units='xy', angles='xy')
 
     legend = ['Decision boundary',
               'Negative class',
@@ -136,9 +134,6 @@ def display_decision_boundary(w,
     # Add legend (size 8, upper left corner)
     plt.legend(legend, loc='upper left', fontsize=8)
 
-
-
-
     # Show the plot if desired
     if show:
         plt.show()
@@ -146,7 +141,7 @@ def display_decision_boundary(w,
 
 # Initialize hyperparameters
 
-def run_experiment(
+def run_perceptron_experiment(
         n=100,
         lr=0.01,
         n_classes=1,
@@ -197,9 +192,9 @@ def run_experiment(
                     highlight_color = 'r'
                 if all_good:
                     display_decision_boundary(w, class_a, class_b, bias=bias, highlight_point=data[:, i],
-                                          highlight_color=highlight_color, title="after update")
+                                              highlight_color=highlight_color, title="after update")
         if all_good:
-            print("All good in epoch ", epoch+1)
+            print("All good in epoch ", epoch + 1)
             break
     if not all_good:
         print("Not all good after ", n_epochs, " epochs")
@@ -222,6 +217,56 @@ def run_experiment(
             correct += 1
     print("Accuracy: ", correct / n)
 
+def sigmoid(x):
+    return 1 / (1 + np.exp(-x))
+
+
+def run_batch_training_experiment(n=100,
+                                  lr=0.01,
+                                  batch_size=10,
+                                  n_classes=1,
+                                  n_features=2,
+                                  mA=[2.0, 2.0],
+                                  mB=[-2.0, -2.0],
+                                  sigma=0.5,
+                                  n_epochs=20,
+                                  bias=True,
+                                  draw=1.0):
+    data, labels, class_a, class_b = generate_data(n, mA, mB, sigma, bias=bias)
+    w = init_w(n_classes, n_features, bias=bias)
+
+    # Plot the decision boundary
+    display_decision_boundary(w, class_a, class_b, bias=bias, title="Initial decision boundary")
+    input("Press Enter to continue...")
+    error_history = []
+    epoch_error = 0
+    prev_epoch_error = float('inf')
+    # Train the perceptron
+    for epoch in range(n_epochs):
+
+        for batch in range(int(n / batch_size)):
+            batch_data = data[:, batch * batch_size:(batch + 1) * batch_size]
+            batch_labels = labels[batch * batch_size:(batch + 1) * batch_size]
+            y_pred = sigmoid(np.dot(w, batch_data))
+
+            e = batch_labels - y_pred
+            print(f"error: {np.sum(e**2)}")
+            error_history.append(np.sum(e**2))
+            epoch_error += np.sum(e**2)
+            w = w + lr * np.dot(e, batch_data.T)
+
+        if abs(epoch_error - prev_epoch_error) < 0.1:
+            print(f"Epoch {epoch + 1} converged")
+            break
+        prev_epoch_error = epoch_error
+        display_decision_boundary(w, class_a, class_b, bias=bias, title="updated decision boundary")
+
+    # Display error history with markers per batch and a line per epoch
+    plt.plot(error_history, marker='o', markersize=3, linewidth=0.8)
+    #lines
+    for i in range(1, n_epochs):
+        plt.axvline(i * (n / batch_size), color='r', linestyle='--', linewidth=0.5)
+    plt.show()
 
 
 # input("Run experiment 1: Linearly seperable data split over the origin, without bias term")
@@ -247,14 +292,26 @@ def run_experiment(
 #                bias=False,
 #                draw=0.1)
 
-input("Run experiment 3: Linearly seperable data, not split over the origin, with bias term")
-run_experiment(n=100,
-               lr=0.1,
-               n_classes=1,
-               n_features=2,
-               mA=[3.0, 3.0],
-               mB=[1.0, 1.0],
-               sigma=0.3,
-               n_epochs=10,
-               bias=True,
-               draw=1.0)
+# input("Run experiment 3: Linearly seperable data, not split over the origin, with bias term")
+# run_perceptron_experiment(n=100,
+#                           lr=0.1,
+#                           n_classes=1,
+#                           n_features=2,
+#                           mA=[3.0, 3.0],
+#                           mB=[1.0, 1.0],
+#                           sigma=0.3,
+#                           n_epochs=10,
+#                           bias=True,
+#                           draw=1.0)
+
+run_batch_training_experiment(n=100,
+                              lr=0.1,
+                              batch_size=10,
+                              n_classes=1,
+                              n_features=2,
+                              mA=[2.0, 2.0],
+                              mB=[2.0, -2.0],
+                              sigma=0.5,
+                              n_epochs=20,
+                              bias=True,
+                              draw=1.0)
