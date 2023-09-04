@@ -245,6 +245,7 @@ def run_batch_training_experiment(n=100,
     display_decision_boundary(w, class_a, class_b, bias=bias, title="Initial decision boundary")
     input("Press Enter to continue...")
     error_history = []
+    epoch_error_history = []
     epoch_error = 0
     prev_epoch_error = float('inf')
     # Train the perceptron
@@ -264,6 +265,8 @@ def run_batch_training_experiment(n=100,
             epoch_error += np.sum(e**2)
             w = w + lr * np.dot(e, batch_data.T)
 
+        epoch_error = np.sum((sigmoid(np.dot(w, data)) - labels)**2)
+        epoch_error_history.append(epoch_error/n)
         if abs(epoch_error - prev_epoch_error)/n < 0.001:
             print(f"Epoch {epoch + 1} converged")
             break
@@ -274,11 +277,17 @@ def run_batch_training_experiment(n=100,
 
     # Plot the decision boundary
     display_decision_boundary(w, class_a, class_b, bias=bias, title="Final decision boundary")
+    epoch_error = np.sum((sigmoid(np.dot(w, data)) - labels) ** 2)
+    epoch_error_history.append(epoch_error / n)
     # Display error history with markers per batch and a line per epoch
     plt.plot(error_history, marker='o', markersize=1, linewidth=0.8)
-    #lines
+
+    #lines and points per epoch
+    x_batch = np.arange(0, len(epoch_error_history) * (n / batch_size), n / batch_size)
+    plt.plot(x_batch, epoch_error_history, marker='o', markersize=2.5, linewidth=2)
     for i in range(1, n_epochs):
         plt.axvline(i * (n / batch_size), color='r', linestyle='--', linewidth=0.5)
+
     plt.title("Errors per batch")
     plt.show()
 
@@ -326,6 +335,6 @@ run_batch_training_experiment(n=100,
                               mA=[2.0, 1.0],
                               mB=[2.0, -1.0],
                               sigma=0.5,
-                              n_epochs=40,
+                              n_epochs=20,
                               bias=True,
                               draw=0.1)
