@@ -279,6 +279,7 @@ def run_batch_training_experiment(n=100,
     display_decision_boundary(w, class_a, class_b, bias=bias, title="Final decision boundary")
     epoch_error = np.sum((sigmoid(np.dot(w, data)) - labels) ** 2)
     epoch_error_history.append(epoch_error / n)
+
     # Display error history with markers per batch and a line per epoch
     plt.plot(error_history, marker='o', markersize=1, linewidth=0.8)
 
@@ -287,6 +288,9 @@ def run_batch_training_experiment(n=100,
     plt.plot(x_batch, epoch_error_history, marker='o', markersize=2.5, linewidth=2)
     for i in range(1, n_epochs):
         plt.axvline(i * (n / batch_size), color='r', linestyle='--', linewidth=0.5)
+
+    # Add legend in top right corner
+    plt.legend(["batch error", "total training error in epoch"], loc=1, bbox_to_anchor=(1.04, 1))
 
     plt.title("Errors per batch")
     plt.show()
@@ -327,14 +331,14 @@ def run_batch_training_experiment(n=100,
 #                           bias=True,
 #                           draw=1.0)
 
-run_batch_training_experiment(n=100,
+run_batch_training_experiment(n=300,
                               lr=0.01,
                               batch_size=1,
                               n_classes=1,
                               n_features=2,
                               mA=[2.0, 1.0],
                               mB=[2.0, -1.0],
-                              sigma=0.5,
+                              sigma=1.,
                               n_epochs=20,
                               bias=True,
                               draw=0.1)
