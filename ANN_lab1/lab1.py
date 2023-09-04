@@ -221,6 +221,12 @@ def sigmoid(x):
     return 1 / (1 + np.exp(-x))
 
 
+def shuffle(data, labels):
+    # Shuffle the data and labels
+    p = np.random.permutation(len(labels))
+    return data[:, p], labels[p]
+
+
 def run_batch_training_experiment(n=100,
                                   lr=0.01,
                                   batch_size=10,
@@ -244,6 +250,9 @@ def run_batch_training_experiment(n=100,
     # Train the perceptron
     for epoch in range(n_epochs):
 
+        # Shuffle data
+        data, labels = shuffle(data, labels)
+
         for batch in range(int(n / batch_size)):
             batch_data = data[:, batch * batch_size:(batch + 1) * batch_size]
             batch_labels = labels[batch * batch_size:(batch + 1) * batch_size]
@@ -255,17 +264,22 @@ def run_batch_training_experiment(n=100,
             epoch_error += np.sum(e**2)
             w = w + lr * np.dot(e, batch_data.T)
 
-        if abs(epoch_error - prev_epoch_error) < 0.1:
+        if abs(epoch_error - prev_epoch_error)/n < 0.001:
             print(f"Epoch {epoch + 1} converged")
             break
         prev_epoch_error = epoch_error
-        display_decision_boundary(w, class_a, class_b, bias=bias, title="updated decision boundary")
+        if random.random() < draw:
+            display_decision_boundary(w, class_a, class_b, bias=bias, title="updated decision boundary")
 
+
+    # Plot the decision boundary
+    display_decision_boundary(w, class_a, class_b, bias=bias, title="Final decision boundary")
     # Display error history with markers per batch and a line per epoch
-    plt.plot(error_history, marker='o', markersize=3, linewidth=0.8)
+    plt.plot(error_history, marker='o', markersize=1, linewidth=0.8)
     #lines
     for i in range(1, n_epochs):
         plt.axvline(i * (n / batch_size), color='r', linestyle='--', linewidth=0.5)
+    plt.title("Errors per batch")
     plt.show()
 
 
@@ -305,13 +319,13 @@ def run_batch_training_experiment(n=100,
 #                           draw=1.0)
 
 run_batch_training_experiment(n=100,
-                              lr=0.1,
-                              batch_size=10,
+                              lr=0.01,
+                              batch_size=1,
                               n_classes=1,
                               n_features=2,
-                              mA=[2.0, 2.0],
-                              mB=[2.0, -2.0],
+                              mA=[2.0, 1.0],
+                              mB=[2.0, -1.0],
                               sigma=0.5,
-                              n_epochs=20,
+                              n_epochs=40,
                               bias=True,
-                              draw=1.0)
+                              draw=0.1)
