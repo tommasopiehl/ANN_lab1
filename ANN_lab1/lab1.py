@@ -218,7 +218,7 @@ def run_perceptron_experiment(
     print("Accuracy: ", correct / n)
 
 def sigmoid(x):
-    return 1 / (1 + np.exp(-x))
+    return x
 
 
 def shuffle(data, labels):
