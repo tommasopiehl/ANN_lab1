@@ -5,7 +5,7 @@ import numpy as np
 import matplotlib.pyplot as plt 
 
 # Constants
-LEARNING_RATE = 0.01
+LEARNING_RATE = 0.001
 EPOCHS = 5000
 CONVERGENCE = 0.0001
 BIAS = True
@@ -25,9 +25,9 @@ def generate_data():
     # sigma = standard deviation
     # m = medelvärde
     n = 100
-    mA = [-2.0, 1]
+    mA = [1, 1.5]
     sigmaA = 0.5
-    mB = [2.0, -1]
+    mB = [-1, -1.5]
     sigmaB = 0.5
 
     classA = np.zeros((2, n))
@@ -85,6 +85,9 @@ def initialize_weights(patterns, targets):
     
     sigma = 0.5
     mean = 0
+    sigma = 1
+    mean = 1
+    
     
     weights = np.random.randn(rows) * sigma + mean
             
@@ -151,13 +154,13 @@ def plot_error(x, y, title, nr, epoch):
     #     plt.axvline(i, color='r', linestyle='--', linewidth=0.5)
     plt.plot(y, marker='o', color='r', markersize=1, linewidth=0.8)
 
-    legend = ['Mean Squared Error']
+    legend = ['Error']
     plt.legend(legend, loc='upper left', fontsize=8)
     plt.xlabel('Epoch')
-    plt.ylabel('MSE')
+    plt.ylabel('Error')
     plt.title(title)
     #plt.savefig(title +".png")
-    plt.savefig(title +".png")
+    plt.savefig("Error plot" + title +".png")
 
 
 # def plot_missclassification(epoch, missclassified):
@@ -177,20 +180,17 @@ def mse(errors, n):
     
     
 def iterative_classification(patterns, targets, weights, type):
-    
-    # helpful to plot a line and after each epoch of training 
-    # iteratively replotting the updated decision boundary 
-    # desicion boundary = line where Wx = 0
-    # om felklassificeras
+
     
     patternsT = np.transpose(patterns)
-    errors = []
-
+    errors = [] 
     
     for epoch in range(EPOCHS):
         missclassified = 0
         change = 0
-        epoch_error = []
+        epoch_error = []  
+        weight_updates = [0,0,0]   
+        
         
         # går igenom alla punkter
         for pattern_index in range(len(patternsT)):
@@ -207,7 +207,7 @@ def iterative_classification(patterns, targets, weights, type):
             '''
             
             if type == "perceptron":  
-                title = "Online mode, Perceptron learning"
+                title = "Sequential mode, Perceptron learning"
                 if weighted_sum < 0:
                     current_class = 0
                 else:
@@ -217,6 +217,9 @@ def iterative_classification(patterns, targets, weights, type):
                 
                 if error != 0:
                     missclassified +=1
+                
+                # samma som delta 
+                epoch_error.append(targets[pattern_index]-weighted_sum)
             
             elif type == "delta":
                 
@@ -230,23 +233,22 @@ def iterative_classification(patterns, targets, weights, type):
                     
                 error = targets[pattern_index]-weighted_sum
                 epoch_error.append(error)
-                title = "Online mode, Delta learning"
-                
+                title = "Sequential mode, Delta learning"
+            
             for i in range(len(weights)):
+                #print(LEARNING_RATE*error*patternsT[pattern_index][i])
                 weights[i] += LEARNING_RATE*error*patternsT[pattern_index][i]
                 change += LEARNING_RATE*error*patternsT[pattern_index][i]
-        errors.append(mse(epoch_error,len(patternsT)))
-        print(missclassified, epoch)
-        print(change)
-        if abs(change) < 0.0001:
+                weight_updates[i] += LEARNING_RATE*error*patternsT[pattern_index][i]
+        #print("missclassified", missclassified)
+        errors.append(np.linalg.norm(epoch_error))
+        
+        if np.linalg.norm(weight_updates) < CONVERGENCE:
             print(epoch," converged")
-
             break
-        # if epoch>1:
-        #     if abs(errors[-1]-errors[-2])< CONVERGENCE:
-        #         print(epoch," converged")
-        #         break 
-    error_title = "MSE per Epoch in sequential mode, Learning Rate "+str(LEARNING_RATE)
+                
+    error_title = "Error per Epoch, Sequential Mode, Learning Rate "+str(LEARNING_RATE)
+    print("Final Error: ", errors[-1])
     plot_error(np.linspace(0,EPOCHS,num=EPOCHS), errors, error_title, 7, epoch)
     plot_decision_boundary(weights, type, title, 11)
                 
@@ -258,29 +260,17 @@ def batch_classification(patterns, targets, weights):
     patternsT = np.transpose(patterns)
 
     for epoch in range(EPOCHS):
-        
         error = targets-np.dot(weights, patterns[:])
-        
         weight_updates = LEARNING_RATE*np.dot(error, patternsT[:])
-       
         weights += weight_updates
-        
-        errors.append(mse(error,len(targets)))
-        # print(weights)
-        # print(weight_updates)
-        # print(abs(sum(weight_updates)))
-        if abs(sum(weight_updates)) < 0.0001:
+        errors.append(np.linalg.norm(error))
+        #print(np.linalg.norm(weight_updates))
+       
+        if np.linalg.norm(weight_updates) < CONVERGENCE:
             print(epoch," converged")
             break
-        # # if epoch>1:
-        #     print(errors[-1])
-        #     print(error[-2])
-        #     print(errors[-1]-errors[-2])
-        #     print(abs(errors[-1]-errors[-2]))
-        #     if abs(errors[-1]-errors[-2])< CONVERGENCE:
-        #         print(epoch," converged")
-        #         break 
-    error_title = "MSE per Epoch in batch mode, Learning Rate "+str(LEARNING_RATE)
+    print("Final Error: ", errors[-1])
+    error_title = "Error per Epoch in Batch Mode, Learning Rate "+str(LEARNING_RATE)
     plot_error(np.linspace(0,EPOCHS,num=EPOCHS), errors, error_title, 8, epoch)
     plot_decision_boundary(weights, "delta", "Batch mode, Delta learning", 10)
             
@@ -291,7 +281,7 @@ def main():
     patterns, targets, symmetric_targets = create_patterns_targets(classA, classB)
     # skicka in dimensions på vikter 
     weights = initialize_weights(patterns, targets)
-    # plot_data(classA, classB, 2)
+    # plot_data(classA, classB, 11)
     # iterative_classification(patterns, targets, weights, type = "perceptron")
     # plot_data(classA, classB, 11)
     # iterative_classification(patterns, symmetric_targets, weights, type = "delta")
