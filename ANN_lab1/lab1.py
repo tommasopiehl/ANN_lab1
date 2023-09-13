@@ -157,7 +157,7 @@ def run_perceptron_experiment(
 
     # Plot the decision boundary
     display_decision_boundary(w, class_a, class_b, bias=bias, title="Initial decision boundary")
-
+    accuracy_history = []
     # Classify data
     all_good = True
     for epoch in range(n_epochs):
@@ -193,6 +193,21 @@ def run_perceptron_experiment(
                 if all_good:
                     display_decision_boundary(w, class_a, class_b, bias=bias, highlight_point=data[:, i],
                                               highlight_color=highlight_color, title="after update")
+        #Record accuracy after each epoch
+        correct = 0
+        y_pred = np.zeros(n)
+        for i in range(n):
+            y_pred_i = np.dot(w, data[:, i])
+            if y_pred_i <= 0:
+                y_pred_i = 0
+            else:
+                y_pred_i = 1
+            y_pred[i] = y_pred_i
+            if y_pred_i == labels[i]:
+                correct += 1
+        accuracy_history.append(correct / n)
+
+
         if all_good:
             print("All good in epoch ", epoch + 1)
             break
@@ -202,6 +217,12 @@ def run_perceptron_experiment(
     # Plot the decision boundary
     display_decision_boundary(w, class_a, class_b, bias=bias, title="Final decision boundary")
     print("Final weights: ", w)
+
+    # Plot accuracy history
+    plt.plot(range(len(accuracy_history)), accuracy_history)
+    plt.xlabel("Epoch")
+    plt.ylabel("Accuracy")
+    plt.show()
 
     # Classify data and calculate accuracy
     correct = 0
@@ -219,7 +240,6 @@ def run_perceptron_experiment(
 
 def sigmoid(x):
     return 1 / (1 + np.exp(-x))
-
 
 def shuffle(data, labels):
     # Shuffle the data and labels
@@ -244,10 +264,9 @@ def run_batch_training_experiment(n=100,
     # Plot the decision boundary
     display_decision_boundary(w, class_a, class_b, bias=bias, title="Initial decision boundary")
     input("Press Enter to continue...")
-    error_history = []
-    epoch_error_history = []
-    epoch_error = 0
-    prev_epoch_error = float('inf')
+
+    accuracy_history = []
+    adjustment_history = []
     # Train the perceptron
     for epoch in range(n_epochs):
 
@@ -257,55 +276,74 @@ def run_batch_training_experiment(n=100,
         for batch in range(int(n / batch_size)):
             batch_data = data[:, batch * batch_size:(batch + 1) * batch_size]
             batch_labels = labels[batch * batch_size:(batch + 1) * batch_size]
-            y_pred = sigmoid(np.dot(w, batch_data))
+            y_pred = np.dot(w, batch_data)
 
-            e = batch_labels - y_pred
-            print(f"error: {np.sum(e**2)}")
-            error_history.append(np.sum(e**2))
-            epoch_error += np.sum(e**2)
-            w = w + lr * np.dot(e, batch_data.T)
+            w = w + lr * np.dot(labels - y_pred, batch_data.T)/batch_size
+            adjustment_history.append(lr * np.dot(labels - y_pred, batch_data.T))
 
-        epoch_error = np.sum((sigmoid(np.dot(w, data)) - labels)**2)
-        epoch_error_history.append(epoch_error/n)
-        if abs(epoch_error - prev_epoch_error)/n < 0.001:
+
+
+            # Calculate accuracy
+            # step function
+            y_pred = y_pred > 0
+            batch_labels = batch_labels > 0
+            accuracy = np.sum(y_pred == batch_labels) / batch_size
+            print(f"Epoch {epoch + 1} batch {batch + 1} accuracy: {accuracy}")
+
+        #display_decision_boundary(w, class_a, class_b, bias=bias, title="updated decision boundary")
+
+        y_pred = np.dot(w, data)
+
+        y_pred = y_pred > 0
+        print(y_pred)
+        batch_labels = labels > 0
+
+        accuracy = np.sum(y_pred == batch_labels) / n
+        accuracy_history.append(accuracy)
+        if accuracy >= 1.0:
             print(f"Epoch {epoch + 1} converged")
             break
-        prev_epoch_error = epoch_error
+
+
+
         if random.random() < draw:
             display_decision_boundary(w, class_a, class_b, bias=bias, title="updated decision boundary")
 
 
     # Plot the decision boundary
     display_decision_boundary(w, class_a, class_b, bias=bias, title="Final decision boundary")
-    epoch_error = np.sum((sigmoid(np.dot(w, data)) - labels) ** 2)
-    epoch_error_history.append(epoch_error / n)
 
-    # Display error history with markers per batch and a line per epoch
-    plt.plot(error_history, marker='o', markersize=1, linewidth=0.8)
+    # Display accuracy history with markers per batch and a line per epoch
+    plt.plot(accuracy_history, marker='o', markersize=1, linewidth=0.8)
 
-    #lines and points per epoch
-    x_batch = np.arange(0, len(epoch_error_history) * (n / batch_size), n / batch_size)
-    plt.plot(x_batch, epoch_error_history, marker='o', markersize=2.5, linewidth=2)
     for i in range(1, n_epochs):
         plt.axvline(i * (n / batch_size), color='r', linestyle='--', linewidth=0.5)
 
     # Add legend in top right corner
-    plt.legend(["batch error", "total training error in epoch"], loc=1, bbox_to_anchor=(1.04, 1))
+    plt.legend(["accuracy in epoch"], loc=1, bbox_to_anchor=(1.04, 1))
 
     plt.title("Errors per batch")
     plt.show()
 
+    adjustment_history = np.array(adjustment_history)
+    adjustment_history = np.log(np.abs(adjustment_history))
+    plt.plot(adjustment_history[:, 0, 0], marker='o', markersize=1, linewidth=0.8)
+    plt.plot(adjustment_history[:, 0, 1], marker='o', markersize=1, linewidth=0.8)
+    plt.plot(adjustment_history[:, 0, 2], marker='o', markersize=1, linewidth=0.8)
+    plt.show()
 
-# input("Run experiment 1: Linearly seperable data split over the origin, without bias term")
-# run_experiment(n=100,
-#                lr=0.01,
-#                n_classes=1,
-#                n_features=2,
-#                mA=[2.0, 2.0],
-#                mB=[-2.0, -2.0],
-#                sigma=0.5,
-#                n_epochs=10,
-#                bias=False)
+
+go = False #input("Run experiment 1: Linearly seperable data split over the origin, without bias term")
+if go != 'n' and False:
+    run_perceptron_experiment(n=100,
+                   lr=0.001,
+                   n_classes=1,
+                   n_features=2,
+                   mA=[2.0, 2.0],
+                   mB=[-2.0, -2.0],
+                   sigma=0.5,
+                   n_epochs=10,
+                   bias=False)
 
 # input("Run experiment 2: Linearly seperable data, not split over the origin, without bias term")
 # run_experiment(n=100,
@@ -331,14 +369,14 @@ def run_batch_training_experiment(n=100,
 #                           bias=True,
 #                           draw=1.0)
 
-run_batch_training_experiment(n=300,
-                              lr=0.01,
-                              batch_size=1,
+run_batch_training_experiment(n=100,
+                              lr=0.001,
+                              batch_size=100,
                               n_classes=1,
                               n_features=2,
-                              mA=[2.0, 1.0],
-                              mB=[2.0, -1.0],
-                              sigma=1.,
-                              n_epochs=20,
+                              mA=[2.0, 2.0],
+                              mB=[2.0, -2.0],
+                              sigma=0.25,
+                              n_epochs=50,
                               bias=True,
                               draw=0.1)
