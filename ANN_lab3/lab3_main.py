@@ -3,6 +3,7 @@ from scipy.interpolate import griddata
 import matplotlib.pyplot as plt
 import sklearn.mixture as mix
 import sklearn.cluster as cluster
+from sklearn.metrics import accuracy_score
 
 
 def rbf(x, c, sigma):
@@ -146,7 +147,7 @@ if __name__ == '__main__':
 
     points = [[1, 1], [-1, -1], [1, -1], [-1, 1]]
     n_points = [100, 100, 100, 100]
-    sigmas = [0.5, 0.5, 0.5, 0.5]
+    sigmas = [0.2, 0.7, 0.1, 0.3]
     classes = [1, -1, 1, -1]
 
     for fit in ['random', 'kmeans', 'gaussian_mixture']:
@@ -157,6 +158,9 @@ if __name__ == '__main__':
         model.fit(data, labels, centers=fit)
 
         print(f"Score for {fit} centers: {model.score(data, labels)}")
+
+        # accuracy
+        print(f"Accuracy for {fit} centers: {accuracy_score(labels, np.sign(model.predict(data)))}")
 
         # display the centres and variance of the RBFs
         display_model_fit(data, labels, model, f"RBF Network with {fit} centers", save=True)
