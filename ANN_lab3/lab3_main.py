@@ -109,10 +109,10 @@ class RBF_Network:
     def __least_squares_fit__(self, phi, classification):
         self.weights = np.linalg.lstsq(phi, classification, rcond=None)[0]
 
-    def __delta_rule_fit__(self, phi, classification, epochs, learning_rate):
+    def __delta_rule_fit__(self, phi, classification, epochs, learning_rate, n_samples):
         self.weights = np.random.rand(self.n_rbf)
         for epoch in range(epochs):
-            for i in range(len(data)):
+            for i in range(n_samples):
                 a = phi[i, :] @ self.weights
                 self.weights += learning_rate * (classification[i] - phi[i, :] @ self.weights) * phi[i, :]
 
@@ -138,7 +138,7 @@ class RBF_Network:
         elif weights == 'least_squares':
             self.__least_squares_fit__(phi, classification)
         elif weights == 'delta_rule':
-            self.__delta_rule_fit__(phi, classification, epochs, learning_rate)
+            self.__delta_rule_fit__(phi, classification, epochs, learning_rate, len(data))
 
     def predict(self, data):
         phi = np.zeros((len(data), self.n_rbf))
@@ -178,6 +178,8 @@ if __name__ == '__main__':
 
         data, labels = generate_data(points, n_points, sigmas, classes)
 
+
+        print(data.shape)
         model = RBF_Network(4, 1, 0.5)
         #model.fit(data, labels, centers=fit, weights='least_squares')
         #model.fit(data, labels, centers=fit, weights='pseudoinverse')
