@@ -56,6 +56,8 @@ n_centers = 50
 sigmas = [0.1, 0.2, 0.3, 0.4, 0.5]
 epochs = 100
 learning_rate = 0.1
+weight_method = 'least_squares'
+center_method = 'kmeans'
 
 # RBF network for sin(2x)
 
@@ -66,7 +68,7 @@ for sig in sigmas:
     mse_list = []
     for cent in range(1, n_centers + 1):
         model = RBF_Network(cent, 1, sig)
-        model.fit(x_train, y_1_train, centers='kmeans', weights='delta_rule', epochs=epochs, learning_rate=learning_rate)
+        model.fit(x_train, y_1_train, centers=center_method, weights=weight_method, epochs=epochs, learning_rate=learning_rate)
         y_test_pred = model.predict(x_test)
         # MSE
         mse = mean_squared_error(y_1_test, y_test_pred)
@@ -102,7 +104,7 @@ for sig in sigmas:
     anim = Animator_3_1()
     for cent in range(1, n_centers + 1):
         model = RBF_Network(cent, 1, sig)
-        model.fit(x_train, y_2_train, centers='kmeans', weights='delta_rule', epochs=epochs, learning_rate=learning_rate)
+        model.fit(x_train, y_2_train, centers=center_method, weights=weight_method, epochs=epochs, learning_rate=learning_rate)
         y_test_pred = model.predict(x_test)
         # MSE
         mse = mean_squared_error(y_2_test, y_test_pred)

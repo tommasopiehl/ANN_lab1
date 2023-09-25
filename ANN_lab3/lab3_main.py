@@ -113,7 +113,6 @@ class RBF_Network:
         self.weights = np.random.rand(self.n_rbf)
         for epoch in range(epochs):
             for i in range(n_samples):
-                a = phi[i, :] @ self.weights
                 self.weights += learning_rate * (classification[i] - phi[i, :] @ self.weights) * phi[i, :]
 
     def phi_activation(self, data):
