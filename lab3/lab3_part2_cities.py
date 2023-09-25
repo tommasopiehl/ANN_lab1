@@ -1,5 +1,10 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import random
+
+#NOTE: DEAD UNIT IS A PROBELM. Isolated points seem to attract multiple nodes where one of the nodes remains dead.
+#Adjusting the update depending on how close each neighbor of the winner is to the sample in question is the best solution ive found.
+#Adjusting the init weights to our data also seems to help.
 
 #Read data from file
 def read_data():
@@ -16,9 +21,17 @@ def read_data():
     return data_matrix.astype(float)
 
 #Init SOM-network with w-values between 0 and 1
-def init_network(dim, n):
+def init_network(dim, n, data):
 
-    net = np.random.rand(n, dim)
+    net = np.zeros([n,dim])
+
+    #Init weights from input samples in order to avoid dead units
+    for i in range(n):
+        #Performance increases significantly when we decrease the range of randomness, obviously maybe I dont know
+        random_term = random.uniform(0.7, 1.3)
+        net[i] = data[i]*random_term
+
+    #net = np.random.uniform(0, 1, (10, 2))
 
     return net
 
@@ -37,14 +50,18 @@ def find_winner(net, x):
     return winner
 
 #Find neighborhood
-def find_hood(net, winner, t):
+def find_hood(net, winner, x, t):
 
-    thr = 2 - int(3*t/20)
+    thr = 2 - int(t*3/20)
     hood = []
     circ_hood = False
 
-    lb = winner-int(thr)
-    ub = winner+int(thr)
+    lb = winner-int(thr/2)
+    ub = winner+int(thr/2)
+
+    if thr == 0:
+        hood.append([winner, 1])
+        return hood
 
     if ub > len(net)-1:
         ub_a = len(net)-1
@@ -52,19 +69,19 @@ def find_hood(net, winner, t):
         circ_hood = True
 
     if circ_hood == True:
-        for i in range(lb-1, ub_a):
-            term = abs(winner-i)
+        for i in range(lb, ub_a+1):
+            term = np.linalg.norm(x-net[i])
             if term == 0:
                 term = 1
             hood.append([i, term])
-        for i in range(0, ub_b):
-            term = abs(winner-i)
+        for i in range(0, ub_b+1):
+            term = np.linalg.norm(x-net[i])
             if term == 0:
                 term = 1
             hood.append([i, term])
     else:
-        for i in range(lb-1, ub):
-            term = abs(winner-i)
+        for i in range(lb, ub+1):
+            term = np.linalg.norm(x-net[i])
             if term == 0:
                 term = 1
             hood.append([i, term])
@@ -73,35 +90,26 @@ def find_hood(net, winner, t):
 
 #Update weights
 def adjust_w(node, x, lr, term):
-
-    #Term/200 seems to be best
+    
     w_old = node
-    w_new = w_old + lr * (x-w_old)/(term/200)
+    w_new = w_old + lr * (x-w_old) / term
 
     return w_new
     
 #Training loop
-def train(net, data, lr):
+def train(net, data, lr, mult):
 
-    n_epochs = 30
+    n_epochs = 20
 
     for epoch in range(n_epochs):
-        #x_i = animal i
-
-        plt_results = results(net, data)
-        for i,res in enumerate(plt_results):
-            plt.scatter(res[0], 0, c ='r')
-            plt.text(res[0], 0.001*i, res[1], fontsize=8)
-
-        plt.show()
-
+        lr -= epoch/1000
         for i, x in enumerate(data):
             win = find_winner(net, x)
-            hood = find_hood(net, win, epoch)
+            hood = find_hood(net, win, x, epoch)
             for j, term in hood:
-                w_new = adjust_w(net[j], x, lr, term)
+                w_new = adjust_w(net[j], x, lr, term*mult)
                 net[j] = w_new
-
+            
     return net
 
 def results(net, data):
@@ -109,25 +117,46 @@ def results(net, data):
     results = []
 
     for i, x in enumerate(data):
-        win = find_winner(net, x)
-        results.append([win, i])
+        win = net[find_winner(net, x)]
+        results.append([win, x])
 
-    results_sorted = sorted(results, key=lambda x: x[0])
+    return results
 
-    return results_sorted
+#To measure performance over multiple runs
+def error(results):
+
+    dist = 0
+    win_count = []
+
+    for res in results:
+        dist += np.linalg.norm(res[0]-res[1])
+        for w in win_count:
+            if np.linalg.norm(res[0]-w)==0:
+                dist += 100
+        win_count.append(res[0])
+
+    return dist
+    
 
 def main():
 
-    #Step-size/learning-rate, 0.2 tunred out to be very high
-    lr = 0.0005
+    #Step-size/learning-rate, 0.2 turned out to be ok
+    lr = 0.55
+    err_ls = []
 
-    result = []
+    for i in range(100):
+        data = read_data()
+        net = init_network(2, 10, data)
+        trained_net = train(net, data, lr, (20))
+        res = results(trained_net, data)
+        err =  error(res)
+        err_ls.append(err)
+    
+    count = 0
+    for e in err_ls:
+        if e < 100:
+            count += 1
 
-    data = read_data()
-    net = init_network(2, 10)
-    trained_net = train(net, data)
+    print(count)
 
-    return result
-
-
-print(main())
+main()

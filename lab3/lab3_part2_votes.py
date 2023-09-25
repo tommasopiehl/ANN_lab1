@@ -1,21 +1,18 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import random
 
-#Read data from file
 def read_data():
 
-    data_names = []
+    data = []
 
-    with open("/Users/tommasopiehl/ANN_lab1/lab3/data_lab2/animals.dat", 'r') as file:
+    with open("/Users/tommasopiehl/ANN_lab1/lab3/data_lab2/votes.dat", 'r') as file:
         data = file.read().rstrip().split(',')
 
-    with open('/Users/tommasopiehl/ANN_lab1/lab3/data_lab2/animalnames.txt', 'r') as file:
-        for line in file:
-            data_names.append(line.rstrip()[1:-1])
+    data_matrix = np.array(data).reshape(349, 31)
 
-    data_matrix = np.array(data).reshape(32, 84)
+    return data_matrix.astype(float)
 
-    return data_matrix.astype(int), data_names
 
 #Init SOM-network with w-values between 0 and 1
 def init_network(dim, n):
@@ -71,7 +68,7 @@ def adjust_w(node, x, lr, term):
     w_new = w_old + lr * (x-w_old)
 
     return w_new
-    
+
 #Training loop
 def train(net, data, lr):
 
@@ -116,7 +113,7 @@ def main():
     lr = 0.2
 
     data, names = read_data()
-    net = init_network(84, 100)
+    net = init_network(10, 10)
     trained_net = train(net, data, lr)
     result = results(trained_net, data, names)
 
