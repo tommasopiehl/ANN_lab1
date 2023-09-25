@@ -2,6 +2,7 @@ import numpy as np
 from scipy.interpolate import griddata
 import matplotlib.pyplot as plt
 import sklearn.mixture as mix
+import sklearn.cluster as cluster
 
 
 def rbf(x, c, sigma):
@@ -91,16 +92,9 @@ class RBF_Network:
         self.centers = data[np.random.choice(len(data), self.n_rbf, replace=False)]
 
     def __get_kmeans_centers__(self, data):
-        self.centers = data[np.random.choice(len(data), self.n_rbf, replace=False)]
-        for i in range(100):
-            clusters = [[] for _ in range(self.n_rbf)]
-            for j in range(len(data)):
-                distances = np.zeros(self.n_rbf)
-                for k in range(self.n_rbf):
-                    distances[k] = np.sqrt(np.sum(np.square(data[j] - self.centers[k])))
-                clusters[np.argmin(distances)].append(data[j])
-            for j in range(self.n_rbf):
-                self.centers[j] = np.mean(clusters[j], axis=0)
+        kmeans = cluster.KMeans(n_clusters=self.n_rbf)
+        kmeans.fit(data)
+        self.centers = kmeans.cluster_centers_
 
     def __get_gaussian_mixture_centers__(self, data):
         gmm = mix.GaussianMixture(n_components=self.n_rbf, covariance_type='diag')
