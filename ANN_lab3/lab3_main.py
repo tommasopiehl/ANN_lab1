@@ -93,7 +93,7 @@ class RBF_Network:
         self.centers = data[np.random.choice(len(data), self.n_rbf, replace=False)]
 
     def __get_kmeans_centers__(self, data):
-        kmeans = cluster.KMeans(n_clusters=self.n_rbf)
+        kmeans = cluster.KMeans(n_clusters=self.n_rbf, n_init='auto')
         kmeans.fit(data)
         self.centers = kmeans.cluster_centers_
 
@@ -103,18 +103,42 @@ class RBF_Network:
         self.centers = gmm.means_
         self.sigmas = np.sqrt(gmm.covariances_)[:, 0]
 
-    def fit(self, data, classification, centers='random'):
+    def __pseudo_inverse_fit__(self, phi, classification):
+        self.weights = np.linalg.pinv(phi) @ classification
+
+    def __least_squares_fit__(self, phi, classification):
+        self.weights = np.linalg.lstsq(phi, classification, rcond=None)[0]
+
+    def __delta_rule_fit__(self, phi, classification, epochs, learning_rate):
+        self.weights = np.random.rand(self.n_rbf)
+        for epoch in range(epochs):
+            for i in range(len(data)):
+                a = phi[i, :] @ self.weights
+                self.weights += learning_rate * (classification[i] - phi[i, :] @ self.weights) * phi[i, :]
+
+    def phi_activation(self, data):
+        phi = np.zeros((len(data), self.n_rbf))
+        for i in range(len(data)):
+            for j in range(self.n_rbf):
+                phi[i, j] = rbf(data[i], self.centers[j], self.sigmas[j])
+        return phi
+
+    def fit(self, data, classification, centers='random', weights='pseudoinverse', epochs=100, learning_rate=0.1):
         if centers == 'random':
             self.__get_random_centers__(data)
         elif centers == 'kmeans':
             self.__get_kmeans_centers__(data)
         elif centers == 'gaussian_mixture':
             self.__get_gaussian_mixture_centers__(data)
-        phi = np.zeros((len(data), self.n_rbf))
-        for i in range(len(data)):
-            for j in range(self.n_rbf):
-                phi[i, j] = rbf(data[i], self.centers[j], self.sigmas[j])
-        self.weights = np.linalg.pinv(phi) @ classification
+
+        phi = self.phi_activation(data)
+
+        if weights == 'pseudoinverse':
+            self.__pseudo_inverse_fit__(phi, classification)
+        elif weights == 'least_squares':
+            self.__least_squares_fit__(phi, classification)
+        elif weights == 'delta_rule':
+            self.__delta_rule_fit__(phi, classification, epochs, learning_rate)
 
     def predict(self, data):
         phi = np.zeros((len(data), self.n_rbf))
@@ -155,7 +179,9 @@ if __name__ == '__main__':
         data, labels = generate_data(points, n_points, sigmas, classes)
 
         model = RBF_Network(4, 1, 0.5)
-        model.fit(data, labels, centers=fit)
+        #model.fit(data, labels, centers=fit, weights='least_squares')
+        #model.fit(data, labels, centers=fit, weights='pseudoinverse')
+        model.fit(data, labels, centers=fit, weights='delta_rule', epochs=100, learning_rate=0.1)
 
         print(f"Score for {fit} centers: {model.score(data, labels)}")
 
