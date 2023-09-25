@@ -6,6 +6,8 @@ import random
 #Adjusting the update depending on how close each neighbor of the winner is to the sample in question is the best solution ive found.
 #Adjusting the init weights to our data also seems to help.
 
+#IDE: runna den typ 100 gånger och ta average result, det som funkar för tillfället
+
 #Read data from file
 def read_data():
 
@@ -102,7 +104,8 @@ def train(net, data, lr, mult):
     n_epochs = 20
 
     for epoch in range(n_epochs):
-        lr -= epoch/1000
+        #0.2 < lr < 0
+        lr -= epoch/100
         for i, x in enumerate(data):
             win = find_winner(net, x)
             hood = find_hood(net, win, x, epoch)
@@ -140,23 +143,24 @@ def error(results):
 
 def main():
 
-    #Step-size/learning-rate, 0.2 turned out to be ok
-    lr = 0.55
-    err_ls = []
+    #Step-size/learning-rate, 0.2 with decrease turned out to be ok
+    lr = 0.2
+    coords_ls = np.zeros([10,2])
+    n_runs = 100
+    data = read_data()
 
-    for i in range(100):
-        data = read_data()
+    for i in range(n_runs):
         net = init_network(2, 10, data)
-        trained_net = train(net, data, lr, (20))
-        res = results(trained_net, data)
-        err =  error(res)
-        err_ls.append(err)
-    
-    count = 0
-    for e in err_ls:
-        if e < 100:
-            count += 1
+        trained_net = train(net, data, lr, (175))
+        for j, p in enumerate(trained_net):
+            coords_ls[j] += p
 
-    print(count)
+    coords_ls = coords_ls/n_runs
+
+    for i, coord in enumerate(coords_ls):
+        plt.scatter(coord[0], coord[1], c='b')
+        plt.scatter(data[i][0], data[i][1], c='r')
+        plt.plot([coords_ls[i-1][0], coords_ls[i][0]], [coords_ls[i-1][1], coords_ls[i][1]], color='red', linestyle='-', linewidth=2)
+    plt.show()
 
 main()
