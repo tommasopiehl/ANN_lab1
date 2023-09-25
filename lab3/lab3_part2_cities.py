@@ -4,18 +4,16 @@ import matplotlib.pyplot as plt
 #Read data from file
 def read_data():
 
-    data_names = []
+    data = []
 
-    with open("/Users/tommasopiehl/ANN_lab1/lab3/data_lab2/animals.dat", 'r') as file:
-        data = file.read().rstrip().split(',')
-
-    with open('/Users/tommasopiehl/ANN_lab1/lab3/data_lab2/animalnames.txt', 'r') as file:
+    with open("/Users/tommasopiehl/ANN_lab1/lab3/data_lab2/cities.dat", 'r') as file:
         for line in file:
-            data_names.append(line.rstrip()[1:-1])
+            data.append(line.strip().split(','))
+            data[-1][1] = data[-1][1][:-1]
 
-    data_matrix = np.array(data).reshape(32, 84)
+    data_matrix = np.array(data).reshape(10, 2)
 
-    return data_matrix.astype(int), data_names
+    return data_matrix.astype(float)
 
 #Init SOM-network with w-values between 0 and 1
 def init_network(dim, n):
@@ -41,17 +39,31 @@ def find_winner(net, x):
 #Find neighborhood
 def find_hood(net, winner, t):
 
-    thr = int(50-t*2.6)
-
-    lb = max(0, winner-thr)
-    ub = min(len(net)-1, winner+thr)
-
+    thr = 2 - int(3*t/20)
     hood = []
+    circ_hood = False
 
-    for i in range(lb-1, ub+1):
-        if i >= 0:
-            
-            #Term is used in order to update the neighbors with regards to their distance to the winner
+    lb = winner-int(thr)
+    ub = winner+int(thr)
+
+    if ub > len(net)-1:
+        ub_a = len(net)-1
+        ub_b = ub-len(net)-1
+        circ_hood = True
+
+    if circ_hood == True:
+        for i in range(lb-1, ub_a):
+            term = abs(winner-i)
+            if term == 0:
+                term = 1
+            hood.append([i, term])
+        for i in range(0, ub_b):
+            term = abs(winner-i)
+            if term == 0:
+                term = 1
+            hood.append([i, term])
+    else:
+        for i in range(lb-1, ub):
             term = abs(winner-i)
             if term == 0:
                 term = 1
@@ -64,7 +76,7 @@ def adjust_w(node, x, lr, term):
 
     #Term/200 seems to be best
     w_old = node
-    w_new = w_old + lr * (x-w_old)/(term/175)
+    w_new = w_old + lr * (x-w_old)/(term/200)
 
     return w_new
     
@@ -73,12 +85,10 @@ def train(net, data, lr):
 
     n_epochs = 30
 
-    data_not, names = read_data()
-
     for epoch in range(n_epochs):
         #x_i = animal i
 
-        plt_results = results(net, data, names)
+        plt_results = results(net, data)
         for i,res in enumerate(plt_results):
             plt.scatter(res[0], 0, c ='r')
             plt.text(res[0], 0.001*i, res[1], fontsize=8)
@@ -94,13 +104,13 @@ def train(net, data, lr):
 
     return net
 
-def results(net, data, names):
+def results(net, data):
 
     results = []
 
     for i, x in enumerate(data):
         win = find_winner(net, x)
-        results.append([win, names[i]])
+        results.append([win, i])
 
     results_sorted = sorted(results, key=lambda x: x[0])
 
@@ -108,13 +118,14 @@ def results(net, data, names):
 
 def main():
 
-    #Step-size/learning-rate
+    #Step-size/learning-rate, 0.2 tunred out to be very high
     lr = 0.0005
 
-    data, names = read_data()
-    net = init_network(84, 100)
-    trained_net = train(net, data, lr)
-    result = results(trained_net, data, names)
+    result = []
+
+    data = read_data()
+    net = init_network(2, 10)
+    trained_net = train(net, data)
 
     return result
 
