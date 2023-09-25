@@ -49,9 +49,8 @@ def generate_data():
     sigmaB = 0.3
 
     classA = np.zeros((2, ndata))
-    classA[0, :round(0.5 * ndata)] = np.random.randn(1, round(0.5 * ndata)) * sigmaA - mA[0]
-    classA[1, :round(0.5 * ndata)] = np.random.randn(1, round(0.5 * ndata)) * sigmaA + mA[0]
-    classA[1, round(0.5 * ndata):] = np.random.randn(1, round(0.5 * ndata)) * sigmaA + mA[1]
+    classA[0, :] = np.concatenate((np.random.randn(1, round(0.5 * ndata)) * sigmaA - mA[0],np.random.randn(1, round(0.5 * ndata)) * sigmaA + mA[0]), axis=1) 
+    classA[1, :] = np.random.randn(1, round(ndata)) * sigmaA + mA[1]
 
     classB = np.zeros((2, ndata))
     classB[0, :] = np.random.randn(1, ndata) * sigmaB + mB[0]
@@ -82,25 +81,22 @@ def create_patterns_targets(classA, classB):
     # classA = np.transpose(random.choices(classAT, k=int(len(classAT)*0.5)))
     
     # remove 50 from B
-    classB = np.transpose(random.choices(classBT, k=int(len(classBT)*0.5)))
+    # classB = np.transpose(random.choices(classBT, k=int(len(classBT)*0.5)))
     
     # remove 20% from a subset of classA for which classA(1,:)<0 and 80% from a
     # subset of classA for which classA(1,:)>0
-    # greater_than_0=[]
-    # smaller_than_0=[]
-    # for data_point in classAT:
-    #     print(data_point)
-    #     if data_point[1]>0:
-    #         greater_than_0.append(data_point)
-    #     else:
-    #         smaller_than_0.append(data_point)
+    greater_than_0=[]
+    smaller_than_0=[]
+    for data_point in classAT:
+        print(data_point)
+        if data_point[0]>0:
+            greater_than_0.append(data_point)
+        else:
+            smaller_than_0.append(data_point)
     
-    # classA1 = random.choices(smaller_than_0, k=int(len(smaller_than_0)*0.8))
-    # classA2 = random.choices(greater_than_0, k=int(len(greater_than_0)*0.2))
-    # print(classA1)
-    # print(classA2)
-
-    # classA = np.transpose(np.concatenate((classA1, classA2), axis = 0))
+    classA1 = random.choices(smaller_than_0, k=int(len(smaller_than_0)*0.8))
+    classA2 = random.choices(greater_than_0, k=int(len(greater_than_0)*0.2))
+    classA = np.transpose(np.concatenate((classA1, classA2), axis = 0))
 
 
     
@@ -194,7 +190,7 @@ def plot_decision_boundary(weights, type, title, fig):
 
     
     #plt.savefig(type+".png")
-    plt.savefig(title+".png")
+    plt.savefig("complicated_boundary"+".png")
 
     
 
@@ -255,9 +251,16 @@ def iterative_classification(patterns, targets, weights, type):
     patternsT = np.transpose(patterns)
     errors = [] 
     accuracy = []
+    accuracy_pos = []
+    accuracy_neg = []
     
     for epoch in range(EPOCHS):
         missclassified = 0
+        pattern_index = 0
+        true_neg = 0
+        false_neg = 0
+        true_pos = 0
+        false_pos = 0     
         change = 0
         epoch_error = []  
         weight_updates = [0,0,0]   
@@ -286,22 +289,50 @@ def iterative_classification(patterns, targets, weights, type):
                 
                 error = targets[pattern_index]-current_class
                 
-                if error != 0:
+                # missclassified
+                    
+                if targets[pattern_index]==0 and current_class == 0:
+                    true_neg+=1
+                elif targets[pattern_index]==0 and current_class == 1:
+                    false_pos+= 1
+                    missclassified +=1
+
+                elif targets[pattern_index] == 1 and current_class ==1:
+                    true_pos +=1
+                elif targets[pattern_index] == 1 and current_class == 0:
+                    false_neg +=1
                     missclassified +=1
                 
                 # samma som delta 
                 epoch_error.append(targets[pattern_index]-weighted_sum)
             
+            
             elif type == "delta":
                 
                 # missclassified
+                missclassified = 0
+                pattern_index = 0
+                true_neg = 0
+                false_neg = 0
+                true_pos = 0
+                false_pos = 0
                 if weighted_sum < 0:
                     current_class = -1
                 else:
                     current_class = 1
-                if targets[pattern_index] != current_class:
-                    missclassified +=1
                     
+                if targets[pattern_index]==-1 and current_class == -1:
+                    true_neg+=1
+                elif targets[pattern_index]==-1 and current_class == 1:
+                    false_pos+= 1
+                    missclassified +=1
+
+                elif targets[pattern_index] == 1 and current_class ==1:
+                    true_pos +=1
+                elif targets[pattern_index] == 1 and current_class == -1:
+                    false_neg +=1
+                    missclassified +=1
+                        
                 error = targets[pattern_index]-weighted_sum
                 epoch_error.append(error)
                 title = "Sequential mode, Delta learning"
@@ -311,20 +342,25 @@ def iterative_classification(patterns, targets, weights, type):
                 weights[i] += LEARNING_RATE*error*patternsT[pattern_index][i]
                 change += LEARNING_RATE*error*patternsT[pattern_index][i]
                 weight_updates[i] += LEARNING_RATE*error*patternsT[pattern_index][i]
+                
         print("missclassified", missclassified)
         errors.append(np.linalg.norm(epoch_error))
-        accuracy.append((len(targets)-missclassified)/len(targets))
+        accuracy.append((true_neg+true_pos)/(true_neg+true_pos+false_neg+false_pos))
+        accuracy_neg.append(true_neg/(true_neg+false_pos))
+        accuracy_pos.append(true_pos/(true_pos+false_neg))
         
         if np.linalg.norm(weight_updates) < CONVERGENCE:
             print(epoch," converged")
             break
                 
     error_title = "Error per Epoch, Delta Learning, Learning Rate "+str(LEARNING_RATE)
-    accuracy_title = "Accuracy per Epoch 50% Class A, 100% ClassB "
-
+    accuracy_title = "Accuracy for the original data set"
+    
+    accuracy_title = "Accuracy for the original data set"
+    plot_accuracy(accuracy, accuracy_title, 112, epoch, accuracy_neg, accuracy_pos)
+    
     print("Final Error: ", errors[-1])
     plot_error(np.linspace(0,EPOCHS,num=EPOCHS), errors, error_title, 7, epoch)
-    plot_accuracy(accuracy, accuracy_title, 11112, epoch)
     plot_decision_boundary(weights, type, title, 11)
                 
         # if type == "perceptron":
@@ -382,10 +418,12 @@ def batch_classification(patterns, targets, weights):
         
     print("Final Error: ", errors[-1])
     error_title = "Error per Epoch in Batch Mode, Learning Rate "+str(LEARNING_RATE)
-    accuracy_title = "Accuracy per Epoch, 80%"+" from classA(1,:)<0 and 20%"+" from classA(1,:)>0"
+    accuracy_title = "Accuracy for 80%"+" of Class A where x<0 and 20%"+" where x>0"
+    #accuracy_title = "Accuracy for 100% " + "of Class A and 50% "+"of Class B"
     plot_accuracy(accuracy, accuracy_title, 112, epoch, accuracy_neg, accuracy_pos)
     plot_error(np.linspace(0,EPOCHS,num=EPOCHS), errors, error_title, 8, epoch)
-    plot_decision_boundary(weights, "delta", "Batch mode, Delta learning", 10)
+    dec_title = "80%"+" of Class A where x<0 and 20%"+" where x>0"
+    plot_decision_boundary(weights, "delta",dec_title , 10)
             
 
 def main():
@@ -394,12 +432,12 @@ def main():
     patterns, targets, symmetric_targets, classA, classB = create_patterns_targets(classA, classB)
     # skicka in dimensions på vikter 
     weights = initialize_weights(patterns, targets)
-    # plot_data(classA, classB, 11)
-    # iterative_classification(patterns, targets, weights, type = "perceptron")
+    plot_data(classA, classB, 11)
+    iterative_classification(patterns, targets, weights, type = "perceptron")
     # plot_data(classA, classB, 11)
     # iterative_classification(patterns, symmetric_targets, weights, type = "delta")
-    plot_data(classA, classB, 10)
-    batch_classification(patterns, symmetric_targets, weights)
+    # plot_data(classA, classB, 10)
+    # batch_classification(patterns, symmetric_targets, weights)
 
 if __name__ == '__main__':
     main()
