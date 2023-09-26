@@ -64,7 +64,7 @@ def generate_data(points:list, n_points:list, sigmas:list, classes:list):
     for i in range(len(points)):
         data.append(generate_gauss_data(n_points[i], points[i], sigmas[i]))
         classification.append(np.full(n_points[i], classes[i]))
-    return np.concatenate(data), np.concatenate(classification)
+    return np.concatenate(data), np.concatenate(classification).reshape(-1, 1)
 
 # display data distribution
 def display_data():
@@ -110,10 +110,16 @@ class RBF_Network:
         self.weights = np.linalg.lstsq(phi, classification, rcond=None)[0]
 
     def __delta_rule_fit__(self, phi, classification, epochs, learning_rate, n_samples):
-        self.weights = np.random.rand(self.n_rbf)
+        self.weights = np.random.rand(self.n_rbf, self.n_output)
         for epoch in range(epochs):
             for i in range(n_samples):
-                self.weights += learning_rate * (classification[i] - phi[i, :] @ self.weights) * phi[i, :]
+
+                class_error = classification[i] - np.dot(phi[i, :], self.weights)
+                for j in range(self.n_rbf):
+                    self.weights[j, :] += learning_rate * class_error * phi[i, j]
+
+                #self.weights += learning_rate * (classification[i] - np.dot(phi[i, :], self.weights)) * phi[i, :]
+                #self.weights += learning_rate * (classification[i] - phi[i, :] @ self.weights) * phi[i, :]
 
     def phi_activation(self, data):
         phi = np.zeros((len(data), self.n_rbf))
@@ -122,13 +128,44 @@ class RBF_Network:
                 phi[i, j] = rbf(data[i], self.centers[j], self.sigmas[j])
         return phi
 
-    def fit(self, data, classification, centers='random', weights='pseudoinverse', epochs=100, learning_rate=0.1):
-        if centers == 'random':
-            self.__get_random_centers__(data)
-        elif centers == 'kmeans':
-            self.__get_kmeans_centers__(data)
-        elif centers == 'gaussian_mixture':
-            self.__get_gaussian_mixture_centers__(data)
+    def fit(self,
+            data,
+            classification,
+            centers='random',
+            weights='pseudoinverse',
+            epochs=100,
+            learning_rate=0.1,
+            skip_centers=False):
+
+        if not skip_centers:
+            if centers == 'random':
+                self.__get_random_centers__(data)
+            elif centers == 'equidistant':
+                if data.shape[1] == 1:
+                    self.centers = np.linspace(data.min(), data.max(), self.n_rbf)
+                elif data.shape[1] == 2:
+                    if np.sqrt(self.n_rbf) % 1 != 0:
+                        raise ValueError('Invalid number of RBFs for equidistant centers')
+
+                    n = int(np.sqrt(self.n_rbf))
+                    # To make the centers be in the data, not at the edges
+                    dist_x = data[:, 0].max() - data[:, 0].min()
+                    dist_y = data[:, 1].max() - data[:, 1].min()
+
+                    d_dist_x = 0.5 * dist_x / (n + 1)
+                    d_dist_y = 0.5 * dist_y / (n + 1)
+
+                    x = np.linspace(data[:, 0].min() + d_dist_x, data[:, 0].max() - d_dist_x, n)
+                    y = np.linspace(data[:, 1].min() + d_dist_y, data[:, 1].max() - d_dist_y, n)
+                    self.centers = np.array(np.meshgrid(x, y)).T.reshape(-1, 2)
+                else:
+                    raise ValueError('Invalid number of dimensions for equidistant centers')
+            elif centers == 'kmeans':
+                self.__get_kmeans_centers__(data)
+            elif centers == 'gaussian_mixture':
+                self.__get_gaussian_mixture_centers__(data)
+            else:
+                raise ValueError('Invalid center type: ' + centers)
 
         phi = self.phi_activation(data)
 
@@ -151,7 +188,17 @@ class RBF_Network:
 
 
 def display_model_fit(data, labels, model, title, save=False):
-    plt.scatter(data[:, 0], data[:, 1], c=labels)
+    if labels.shape[1] == 2:
+        col = [0] * labels.shape[0]
+        # rescale to 0-1
+        labels = (labels - np.min(labels)) / (np.max(labels) - np.min(labels))
+
+        # set rbg in range 0-1
+        for i in range(len(labels)):
+            col[i] = (labels[i, 0], labels[i, 1], 0.5)
+        plt.scatter(data[:, 0], data[:, 1], c=col)
+    else:
+        plt.scatter(data[:, 0], data[:, 1], c=labels)
     plt.scatter(model.centers[:, 0], model.centers[:, 1], c='red')
 
     for i in range(len(model.centers)):
@@ -173,12 +220,10 @@ if __name__ == '__main__':
     sigmas = [0.2, 0.7, 0.1, 0.3]
     classes = [1, -1, 1, -1]
 
-    for fit in ['random', 'kmeans', 'gaussian_mixture']:
+    for fit in ['equidistant', 'random', 'kmeans', 'gaussian_mixture']:
 
         data, labels = generate_data(points, n_points, sigmas, classes)
 
-
-        print(data.shape)
         model = RBF_Network(4, 1, 0.5)
         #model.fit(data, labels, centers=fit, weights='least_squares')
         #model.fit(data, labels, centers=fit, weights='pseudoinverse')

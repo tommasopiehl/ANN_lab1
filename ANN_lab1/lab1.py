@@ -98,7 +98,7 @@ def display_decision_boundary(w,
     plt.scatter(class_a[0], class_a[1], c='b')
     plt.scatter(class_b[0], class_b[1], c='r')
 
-    # make window square and set the title
+    # make window square.png and set the title
     plt.axis([-4, 4, -4, 4])
     plt.gca().set_aspect('equal', adjustable='box')
     plt.title(title)

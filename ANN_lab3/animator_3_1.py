@@ -45,7 +45,7 @@ class Animator_3_1():
 
         frames = len(self.frame_data)
         anim = animation.FuncAnimation(self.current_figure, self.animate, frames=frames, interval=20, blit=False)
-        anim.save(filename+".gif", writer='Pillow', fps=6)
+        anim.save("images/3.1/gifs/" + filename + ".gif", writer='Pillow', fps=6)
 
     def save_png_sequence(self, filename):
         """
@@ -53,8 +53,8 @@ class Animator_3_1():
         """
 
         # create a folder for the png files if it doesn't exist
-        if not os.path.exists(filename):
-            os.makedirs(filename)
+        if not os.path.exists("images/3.1/png_series/" + filename):
+            os.makedirs("images/3.1/png_series/" + filename)
 
         for i, frame in enumerate(self.frame_data):
             x, y1, y2, title, xlabel, ylabel, legend1, legend2 = frame
@@ -72,5 +72,5 @@ class Animator_3_1():
             ax.set_xlim([0, 2*np.pi])
 
             # save the figure
-            plt.savefig(filename + '/frame' + str(i) + '.png')
+            plt.savefig("images/3.1/png_series/" + filename + '/frame' + str(i) + '.png')
             plt.close()
