@@ -41,7 +41,7 @@ def find_winner(net, x):
 #Find neighborhood
 def find_hood(net, winner, t):
 
-    thr = int(50-t*2.6)
+    thr = int(50-t*2.5)
 
     lb = max(0, winner-thr)
     ub = min(len(net)-1, winner+thr)
@@ -49,24 +49,18 @@ def find_hood(net, winner, t):
     hood = []
 
     if lb-ub == 0:
-        hood = [[winner, 1]]
+        hood.append(winner)
         return hood
 
     for i in range(lb-1, ub+1):
         if i >= 0:
-            
-            #Term is used in order to update the neighbors with regards to their distance to the winner
-            term = abs(winner-i)
-            if term == 0:
-                term = 1
-            hood.append([i, term])
+            hood.append(i)
 
     return hood
 
 #Update weights
-def adjust_w(node, x, lr, term):
+def adjust_w(node, x, lr):
 
-    #We dont use term anymore
     w_old = node
     w_new = w_old + lr * (x-w_old)
 
@@ -75,7 +69,7 @@ def adjust_w(node, x, lr, term):
 #Training loop
 def train(net, data, lr):
 
-    n_epochs = 30
+    n_epochs = 20
 
     data_not, names = read_data()
 
@@ -83,17 +77,22 @@ def train(net, data, lr):
         #x_i = animal i
 
         plt_results = results(net, data, names)
-        for i,res in enumerate(plt_results):
+        plt_y = {}
+        for i, res in enumerate(plt_results):
             plt.scatter(res[0], 0, c ='r')
-            plt.text(res[0], 0.001*i, res[1], fontsize=8)
+            if i % 2==0:
+                plt.text(res[0], 0.002*i, res[1], fontsize=12)
 
+        plt.title("Epoch: "+str(epoch))
+        plt.xlim([0, 110])
+        plt.ylim([-0.02, 0.08])
         plt.show()
 
         for i, x in enumerate(data):
             win = find_winner(net, x)
             hood = find_hood(net, win, epoch)
-            for j, term in hood:
-                w_new = adjust_w(net[j], x, lr, term)
+            for j in hood:
+                w_new = adjust_w(net[j], x, lr)
                 net[j] = w_new
 
     return net
@@ -107,6 +106,12 @@ def results(net, data, names):
         results.append([win, names[i]])
 
     results_sorted = sorted(results, key=lambda x: x[0])
+
+    win_count = np.zeros(100)
+    for res in results_sorted:
+        win_count[res[0]] += 1
+
+    print(win_count)
 
     return results_sorted
 

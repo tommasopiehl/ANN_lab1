@@ -30,12 +30,25 @@ def init_network(dim, n, data):
     #Init weights from input samples in order to avoid dead units
     for i in range(n):
         #Performance increases significantly when we decrease the range of randomness, obviously maybe I dont know
-        random_term = random.uniform(0.7, 1.3)
+        random_term = random.uniform(0.6, 1.4)
         net[i] = data[i]*random_term
 
     #net = np.random.uniform(0, 1, (10, 2))
 
     return net
+
+#Find the distance to all other points for each point, we use it in order to adjust the w-updates towards each point
+def p_density(data):
+
+    dist_ls = np.zeros(len(data))
+
+    for i, point in enumerate(data):
+        dist = 0
+        for next_point in data:
+            dist += np.linalg.norm(point-next_point)
+        dist_ls[i] = dist
+
+    return dist_ls
 
 #Find winner for CL
 def find_winner(net, x):
@@ -56,13 +69,13 @@ def find_hood(net, winner, x, t):
 
     thr = 2 - int(t*3/20)
     hood = []
-    circ_hood = False
+    circ_hood = False  
 
     lb = winner-int(thr/2)
     ub = winner+int(thr/2)
 
     if thr == 0:
-        hood.append([winner, 1])
+        hood.append(winner)
         return hood
 
     if ub > len(net)-1:
@@ -72,21 +85,12 @@ def find_hood(net, winner, x, t):
 
     if circ_hood == True:
         for i in range(lb, ub_a+1):
-            term = np.linalg.norm(x-net[i])
-            if term == 0:
-                term = 1
-            hood.append([i, term])
+            hood.append(i)
         for i in range(0, ub_b+1):
-            term = np.linalg.norm(x-net[i])
-            if term == 0:
-                term = 1
-            hood.append([i, term])
+            hood.append(i)
     else:
         for i in range(lb, ub+1):
-            term = np.linalg.norm(x-net[i])
-            if term == 0:
-                term = 1
-            hood.append([i, term])
+            hood.append(i)
 
     return hood
 
@@ -94,23 +98,25 @@ def find_hood(net, winner, x, t):
 def adjust_w(node, x, lr, term):
     
     w_old = node
-    w_new = w_old + lr * (x-w_old) / term
+    w_new = w_old + lr * (x-w_old) / (term)
 
     return w_new
     
 #Training loop
-def train(net, data, lr, mult):
+def train(net, data, lr):
 
     n_epochs = 20
+    dist_ls = p_density(data)
 
     for epoch in range(n_epochs):
-        #0.2 < lr < 0
-        lr -= epoch/100
         for i, x in enumerate(data):
             win = find_winner(net, x)
             hood = find_hood(net, win, x, epoch)
-            for j, term in hood:
-                w_new = adjust_w(net[j], x, lr, term*mult)
+            for j in hood:
+                if j != win:
+                    w_new = adjust_w(net[j], x, lr, dist_ls[i])
+                else:
+                    w_new = adjust_w(net[j], x, lr, 1)
                 net[j] = w_new
             
     return net
@@ -124,34 +130,19 @@ def results(net, data):
         results.append([win, x])
 
     return results
-
-#To measure performance over multiple runs
-def error(results):
-
-    dist = 0
-    win_count = []
-
-    for res in results:
-        dist += np.linalg.norm(res[0]-res[1])
-        for w in win_count:
-            if np.linalg.norm(res[0]-w)==0:
-                dist += 100
-        win_count.append(res[0])
-
-    return dist
     
 
 def main():
 
     #Step-size/learning-rate, 0.2 with decrease turned out to be ok
-    lr = 0.2
+    lr = 0.1
     coords_ls = np.zeros([10,2])
-    n_runs = 100
+    n_runs = 15
     data = read_data()
 
     for i in range(n_runs):
         net = init_network(2, 10, data)
-        trained_net = train(net, data, lr, (175))
+        trained_net = train(net, data, lr)
         for j, p in enumerate(trained_net):
             coords_ls[j] += p
 

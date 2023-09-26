@@ -6,7 +6,7 @@ import matplotlib.transforms as transforms
 #Coding: 0=no party, 1='m', 2='fp', 3='s', 4='v', 5='mp', 6='kd', 7='c'
 #Use some color scheme for these different groups
 #I have adapted the coding of the parties to better represent the left-right scale in politics
-#New coding: 0=no party, 1='m', 2='kd', 3='fp', 4='c', 5='s', 6='mp', 7='v'
+#New coding: 0=no party, 1='v', 2='mp', 3='s', 4='c', 5='fp', 6='m', 7='kd'
 
 #Coding: Male 0, Female 1
 
@@ -35,16 +35,18 @@ def read_data():
     with open('/Users/tommasopiehl/ANN_lab1/lab3/data_lab2/mpparty.dat', 'r') as file:
         for line in file:
             new_line = line
-            if int(line) == 2:
-                new_line = 3
-            if int(line) == 3:
-                new_line = 5
-            if int(line) == 4:
-                new_line = 7
-            if int(line) == 5:
+            if int(line) == 1:
                 new_line = 6
-            if int(line) == 6:
+            if int(line) == 2:
+                new_line = 5
+            if int(line) == 3:
+                new_line = 3
+            if int(line) == 4:
+                new_line = 1
+            if int(line) == 5:
                 new_line = 2
+            if int(line) == 6:
+                new_line = 7
             if int(line) == 7:
                 new_line = 4
             data_parties.append(int(new_line))
@@ -78,7 +80,7 @@ def find_winner(net, x):
 #Find neighborhood
 def find_hood(net, winner, t):
 
-    thr = int(50-t*2.6)
+    thr = int(50-t*2.5)
 
     lb = max(0, winner-thr)
     ub = min(len(net)-1, winner+thr)
@@ -112,7 +114,7 @@ def adjust_w(node, x, lr, term):
 #Training loop
 def train(net, data, lr):
 
-    n_epochs = 30
+    n_epochs = 20
 
     for epoch in range(n_epochs):
 
@@ -146,6 +148,8 @@ def plot_result(result, category, decode_ls=None):
 
     cmap_data = np.zeros([100,2])
     cmap_id = np.zeros(100)
+    avg_pos = np.zeros([len(decode_ls), 2])
+    party_count = np.zeros(8)
 
     #Normalize nerouns in positive quadrant
     for res in result:
@@ -179,6 +183,8 @@ def plot_result(result, category, decode_ls=None):
         for res in result:
             party_id = res[1]
             coords = res[0]
+            avg_pos[party_id] += coords
+            party_count[party_id] += 1
             plt.scatter(coords[0], coords[1], c='b')
             plt.text(coords[0],coords[1],decode_ls[party_id],fontsize=5, color='red')
     else:
@@ -190,6 +196,16 @@ def plot_result(result, category, decode_ls=None):
 
     plt.title("Positions of each neuron and the sample which it represents, "+str(category))
     plt.show()
+
+    if len(decode_ls) > 0:
+        for i in range(len(avg_pos)):
+            avg_pos[i] = avg_pos[i]/party_count[i]
+            plt.scatter(avg_pos[i][0],avg_pos[i][1])
+            plt.text(avg_pos[i][0],avg_pos[i][1],decode_ls[i],fontsize=25, color='black')
+
+    plt.title("Average position of each, "+str(category))
+    plt.show()
+
 
     #10x10 grid colormap showing the precense of each party
     cmap_id_plt = cmap_id.reshape(10,10).T
@@ -220,7 +236,7 @@ def main():
     result_distr = uni_dist_matrix(trained_net, data, distr)
     result_gender = uni_dist_matrix(trained_net, data, gender)
 
-    decode_ls = ['None','M','KD','FP','C','S','MP','V']
+    decode_ls = ['None','V','MP','S','C','FP','M','KD']
     decode_ls_gender = ['Man','Woman']
 
     plot_result(result, "Party", decode_ls=decode_ls)
