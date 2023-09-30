@@ -1,8 +1,8 @@
 import numpy as np
 from matplotlib import pyplot as plt
 
-from ANN_lab3.SOM_3_3 import SOM
-from ANN_lab3.lab3_main import RBF_Network, display_model_fit
+from ANN_lab2.SOM_3_3 import SOM
+from ANN_lab2.lab3_main import RBF_Network, display_model_fit
 from sklearn.metrics import mean_squared_error
 
 

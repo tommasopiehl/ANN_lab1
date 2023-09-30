@@ -1,7 +1,7 @@
 import numpy as np
 from matplotlib import pyplot as plt
 
-from ANN_lab3.animator_SOM import Animator
+from ANN_lab2.animator_SOM import Animator
 
 
 def egg_carton(x, y):
@@ -102,7 +102,7 @@ class SOM:
                 p = self.centers[k, l, :]
                 self.centers[k, l, :] = self.centers[k, l, :] + eta * effect * direction
 
-    def train(self, data, epochs, eta, sigma_min, sigma_max, gif_name, save_gif=True):
+    def train(self, data, epochs, eta, sigma_min, sigma_max, gif_name, save_gif=False):
         """
         Trains the SOM on the given data for the given number of epochs
         """
@@ -115,7 +115,6 @@ class SOM:
 
         anim = Animator()
         for i in range(epochs):
-            # shuffle the data
 
             anim.save_frame(data, self.centers.copy())
             sigma = sigma_max - (sigma_max - sigma_min) * i / epochs
@@ -205,6 +204,6 @@ if __name__ == '__main__':
 
     data = get_surface_dots(n_points=1000)
 
-    SOM.train(data, epochs=300, eta=0.01, sigma_min=0.1, sigma_max=3.0, gif_name='images/3_3/bad_fit_SOM')
+    SOM.train(data, epochs=300, eta=0.51, sigma_min=0.1, sigma_max=0.1, gif_name='images/3_3/bad_fit_SOM', save_gif=True)
 
     SOM.plot_grid_3d(data)
