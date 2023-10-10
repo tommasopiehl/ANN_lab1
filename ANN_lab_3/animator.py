@@ -17,7 +17,7 @@ class Animator():
 
 
     def save_frame(self, x):
-        self.frame_data.append(x)
+        self.frame_data.append(x.copy())
 
 
     def animate(self, i):
@@ -25,10 +25,13 @@ class Animator():
         Function to animate the figures
         """
 
+        print(i)
+
         self.current_ax.clear()
         x = self.frame_data[i]
-        self.current_ax.imshow(x.reshape(self.shape), cmap='gray')
-        self.current_ax.axis('off')
+        print(x.shape)
+        plt.imshow(x.reshape(self.shape), cmap='gray')
+        plt.axis('off')
 
         self.current_ax = self.current_figure.gca()
 
@@ -44,7 +47,7 @@ class Animator():
         frames = len(self.frame_data)
 
         anim = animation.FuncAnimation(self.current_figure, self.animate, frames=frames, interval=20, blit=False)
-        anim.save(filename, writer='imagemagick', fps=2)
+        anim.save(filename, writer='imagemagick', fps=160)
 
     def save_png_sequence(self, filename):
         """
@@ -55,13 +58,18 @@ class Animator():
         if not os.path.exists(filename):
             os.makedirs(filename)
 
-        for i, frame in enumerate(self.frame_data):
-            self.current_figure = plt.figure()
-            self.animate(i)
+        self.current_figure = plt.figure()
+        self.current_ax = self.current_figure.gca()
 
-            # save the figure
-            plt.savefig(filename + '/frame' + str(i) + '.png')
-            plt.close(self.current_figure)
+
+        for i, frame in enumerate(self.frame_data):
+            if i % 32 == 0:
+                self.current_figure = plt.figure()
+                self.animate(i)
+
+                # save the figure
+                plt.savefig(filename + '/frame' + str(i//32) + '.png')
+                plt.close(self.current_figure)
 
 
 

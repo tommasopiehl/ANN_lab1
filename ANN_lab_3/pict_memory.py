@@ -99,18 +99,18 @@ if __name__ == '__main__':
     pattern_1_noisy[np.random.randint(0, pict_size, int(0.1*pict_size))] *= -1
 
     # top row is pattern 10, 11 and 1 with 30% noise
-    display_image(pattern_10, pict_shape, title=f"Pattern 10", show=False, fig=fig, ax=axs[0, 0])
-    display_image(pattern_11, pict_shape, title=f"Pattern 11", show=False, fig=fig, ax=axs[0, 1])
-    display_image(pattern_1_noisy, pict_shape, title=f"Pattern 1 with 10% noise", show=False, fig=fig, ax=axs[0, 2])
+    display_image(pattern_10, pict_shape, title=f"input p10", show=False, fig=fig, ax=axs[0, 0])
+    display_image(pattern_11, pict_shape, title=f"input p11", show=False, fig=fig, ax=axs[0, 1])
+    display_image(pattern_1_noisy, pict_shape, title=f"input p1 with noise", show=False, fig=fig, ax=axs[0, 2])
 
     # show results
-    output_10 = hopfield.run(pattern_10, sequential=True, update_order="random")
-    output_11 = hopfield.run(pattern_11, sequential=True, update_order="random")
-    output_1 = hopfield.run(pattern_1_noisy, sequential=True, update_order="random")
+    output_10 = hopfield.run(pattern_10, sequential=True, show_gif=True, update_order="random", gif_name="p10")
+    output_11 = hopfield.run(pattern_11, sequential=True, show_gif=False, update_order="random", gif_name="p11")
+    output_1 = hopfield.run(pattern_1_noisy, sequential=True, show_gif=False, update_order="random", gif_name="p1")
 
-    display_image(output_10, pict_shape, title=f"Pattern 10", show=False, fig=fig, ax=axs[1, 0])
-    display_image(output_11, pict_shape, title=f"Pattern 11", show=False, fig=fig, ax=axs[1, 1])
-    display_image(output_1, pict_shape, title=f"Pattern 1 with 10% noise", show=False, fig=fig, ax=axs[1, 2])
+    display_image(output_10, pict_shape, title=f"output p10", show=False, fig=fig, ax=axs[1, 0])
+    display_image(output_11, pict_shape, title=f"output p11", show=False, fig=fig, ax=axs[1, 1])
+    display_image(output_1, pict_shape, title=f"output p1 with noise", show=False, fig=fig, ax=axs[1, 2])
 
 
 

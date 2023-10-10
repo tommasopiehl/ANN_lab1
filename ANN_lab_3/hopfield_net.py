@@ -22,11 +22,19 @@ class HopfieldNet:
     """
     Hopfield network class.
     """
-    def __init__(self, n_nodes, shape=None):
+    def __init__(self, n_nodes, shape=None, sequential=False):
+        """
+        Initialize the Hopfield network.
+        :param n_nodes:
+        :param shape:
+        :param sequential:
+        """
         self.weights = None
         self.threshold = None
         self.n_nodes = n_nodes
         self.update_order = np.arange(n_nodes)
+        self.n_patterns = 0
+        self.sequential = sequential
         if shape is None:
             self.shape = find_two_largest_factors(n_nodes)
         else:
@@ -35,6 +43,7 @@ class HopfieldNet:
     def train(self, data, sequential=False):
         """
         Train the network on the given data.
+        :param sequential:
         :param data: The data to train on.
         """
         # Initialize the weights and threshold
@@ -46,13 +55,32 @@ class HopfieldNet:
         for x in data:
             self.weights += np.outer(x, x)
 
-        self.weights /= self.n_nodes
+        self.weights /= data.shape[0]
+        self.n_patterns = data.shape[0]
+        self.sequential = sequential
         if sequential:
             # clear diagonal
             np.fill_diagonal(self.weights, 0)
 
+    def add_pattern(self, pattern):
+        """
+        Add a pattern to the network.
+        :param pattern: The pattern to add.
+        """
+        if self.weights is None:
+            self.weights = np.zeros((self.n_nodes, self.n_nodes))
+            self.threshold = np.zeros(self.n_nodes)
 
-    def run_cycle(self, x, sequential=False, update_order=None):
+        self.weights *= self.n_patterns
+
+        self.weights += np.outer(pattern, pattern)
+
+        self.n_patterns += 1
+
+        self.weights /= self.n_patterns
+
+
+    def run_cycle(self, x, sequential=False, update_order=None, anim=None):
         """
         Run one cycle of the network.
         :param x: The input to the network.
@@ -66,12 +94,14 @@ class HopfieldNet:
 
             for node in self.update_order:
                 x[node] = self.activation(x, node)
+                if anim is not None:
+                    anim.save_frame(x)
 
             return x
         else:
             return np.sign(np.dot(self.weights, x) - self.threshold)
 
-    def run(self, x, n_cycles=100, sequential=False, show_gif=False, update_order=None):
+    def run(self, x, n_cycles=100, sequential=False, show_gif=False, update_order=None, gif_name=None):
         """
         Run the network for a number of cycles.
         :param x: The input to the network.
@@ -85,6 +115,8 @@ class HopfieldNet:
         if show_gif:
             anim = Animator(self.shape)
             anim.save_frame(x)
+        else:
+            anim = None
 
         if sequential:
             if update_order is None:
@@ -95,15 +127,20 @@ class HopfieldNet:
         for i in range(n_cycles):
             x_old = x.copy()
             if sequential:
-                self.run_cycle(x, sequential=True, update_order=update_order)
+                self.run_cycle(x, sequential=True, update_order=update_order, anim=anim)
             else:
                 x = self.run_cycle(x)
                 if show_gif:
-                    anim.save_frame(x)
+                    anim.save_frame(x.copy())
             if np.array_equal(x, x_old):
                 break
         if show_gif:
-            anim.save(f"images/hopfield_{len(x)}.gif")
+            if gif_name is None:
+                #anim.save(f"images/hopfield_{len(x)}.gif")
+                anim.save_png_sequence(f"images/hopfield_{len(x)}")
+            else:
+                #anim.save(f"images/{gif_name}.gif")
+                anim.save_png_sequence(f"images/{gif_name}")
         return x
 
     def activation(self, x, i):
