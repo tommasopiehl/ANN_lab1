@@ -80,12 +80,12 @@ def train(net, data, lr):
         plt_y = {}
         for i, res in enumerate(plt_results):
             plt.scatter(res[0], 0, c ='r')
-            if i % 2==0:
-                plt.text(res[0], 0.002*i, res[1], fontsize=12)
+            if i % 2 == 0:
+                plt.text(res[0], 0.001*i, res[1], fontsize=10)
 
         plt.title("Epoch: "+str(epoch))
         plt.xlim([0, 110])
-        plt.ylim([-0.02, 0.08])
+        plt.ylim([-0.02, 0.05])
         plt.show()
 
         for i, x in enumerate(data):
